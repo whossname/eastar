@@ -6,11 +6,10 @@ defmodule Astar do
     A* graph pathfinding.
   """
 
-  @type  vertex     :: any
-  @type  nbs_f      :: ((vertex) -> [vertex])
-  @type  distance_f :: ((vertex,vertex) -> non_neg_integer)
-  @type  env        :: {nbs_f, distance_f, distance_f}
-
+  @type vertex :: any
+  @type nbs_f :: (vertex -> [vertex])
+  @type distance_f :: (vertex, vertex -> non_neg_integer)
+  @type env :: {nbs_f, distance_f, distance_f}
 
   @doc """
   Find path between two vertices in a directed weighted graph.
@@ -26,34 +25,34 @@ defmodule Astar do
 
   @spec astar(env, vertex, vertex) :: [vertex]
 
-  def astar({_nbs, _dist, h}=env, start, goal) do
-    openmap = HeapMap.new
-              |> HeapMap.add(h.(start,goal), start, 0)
+  def astar({_nbs, _dist, h} = env, start, goal) do
+    openmap =
+      HeapMap.new()
+      |> HeapMap.add(h.(start, goal), start, 0)
 
-    loop(env, goal, openmap, MapSet.new, Map.new)
+    loop(env, goal, openmap, MapSet.new(), Map.new())
   end
 
+  @spec loop(env, vertex, HeapMap.t(), MapSet.t(), Map.t()) :: [vertex]
 
-  @spec loop(env, vertex, HeapMap.t, MapSet.t, Map.t) :: [vertex]
+  defp loop(_, _, HeapMap.Pattern.empty(), _, _), do: []
 
-  defp loop(_, _, HeapMap.Pattern.empty, _, _), do: []
+  defp loop({nbs, dist, h} = env, goal, openmap, closedset, parents) do
+    {_fx, x, openmap} = HeapMap.pop(openmap)
 
-  defp loop({nbs, dist, h}=env, goal, openmap, closedset, parents) do
-      {_fx, x, openmap} = HeapMap.pop(openmap)
-      if x == goal do
-        cons_path(parents, goal)
-      else
+    if x == goal do
+      cons_path(parents, goal)
+    else
+      closedset = MapSet.put(closedset, x)
 
-        closedset = MapSet.put(closedset, x)
-
-        {openmap,parents} = Enum.reduce nbs.(x), {openmap,parents},
-        fn(y, {openmap,parents}=continue) ->
-
-          if MapSet.member?(closedset, y) do continue
+      {openmap, parents} =
+        Enum.reduce(nbs.(x), {openmap, parents}, fn y, {openmap, parents} = continue ->
+          if MapSet.member?(closedset, y) do
+            continue
           else
-            est_g = HeapMap.get_by_key(openmap,x) + dist.(x,y)
+            est_g = HeapMap.get_by_key(openmap, x) + dist.(x, y)
 
-            {ty, gy} = HeapMap.mapping(openmap,y)
+            {ty, gy} = HeapMap.mapping(openmap, y)
 
             if gy do
               if est_g < gy do
@@ -66,10 +65,10 @@ defmodule Astar do
               update(h, x, y, goal, est_g, openmap, parents)
             end
           end
-        end
+        end)
 
-        loop(env, goal, openmap, closedset, parents)
-      end
+      loop(env, goal, openmap, closedset, parents)
+    end
   end
 
   defp update(h, x, y, goal, new_gy, openmap, parents) do
@@ -79,15 +78,17 @@ defmodule Astar do
     {nopenmap, nparents}
   end
 
-
-  @spec cons_path(Dict.t, vertex) :: [vertex]
+  @spec cons_path(Dict.t(), vertex) :: [vertex]
 
   defp cons_path(parents, vertex), do: cons_path(parents, vertex, [])
+
   defp cons_path(parents, vertex, acc) do
-    parent = Map.get(parents,vertex)
+    parent = Map.get(parents, vertex)
+
     if parent do
-      cons_path(parents, parent, [vertex|acc])
-    else acc
+      cons_path(parents, parent, [vertex | acc])
+    else
+      acc
     end
   end
 end
