@@ -1,8 +1,11 @@
 defmodule Astar.HeapMap.ExCheck.Test do
   use ExUnit.Case
-  use ExCheck
+  #use ExCheck
   import Astar.HeapMap
 
+  """
+  @tag :property_tests
+  @tag :skip
   describe "Property tests" do
     property "add makes value retrievable by get_by_key and mapping" do
       h0 = new()
@@ -69,4 +72,5 @@ defmodule Astar.HeapMap.ExCheck.Test do
       end
     end
   end
+  """
 end
